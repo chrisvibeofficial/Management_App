@@ -1,4 +1,4 @@
-const { register, verify, login, registerTeacher, registerStudent, forgotPassword, resetPassword, changePassword, getTeachers, getTeacherAndAssignedStudents, makeTeacherAdmin, removeTeacherAsAdmin, deleteTeacher, getStudents } = require('../controllers/managementController');
+const { register, verify, login, registerTeacher, registerStudent, forgotPassword, resetPassword, changePassword, getTeachers, getTeacherAndAssignedStudents, makeTeacherAdmin, removeTeacherAsAdmin, deleteTeacher, getStudents, getStudentByStack, deleteStudent } = require('../controllers/managementController');
 const { authorizeManagement } = require('../middlewares/authorization');
 
 const router = require('express').Router();
@@ -17,5 +17,7 @@ router.post('/remove-admin/:teacherId', authorizeManagement, removeTeacherAsAdmi
 router.delete('/delete-teacher', authorizeManagement, deleteTeacher);
 router.post('/register-student', authorizeManagement, registerStudent);
 router.get('/allStudents', authorizeManagement, getStudents);
+router.get('/student', authorizeManagement, getStudentByStack);
+router.delete('/delete-student', authorizeManagement, deleteStudent);
 
 module.exports = router;

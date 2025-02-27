@@ -1,10 +1,10 @@
-const teacherModel = require('../model/teacher')
-const bcrypt = require('bcrypt')
+const teacherModel = require('../models/teacher');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { verify_account } = require('../helper/account-verification')
+const { verify_account } = require('../helper/account-verification');
 const { emailSender } = require('../middlewares/nodemailer');
-const managementModel = require('../models/management');
-
+const studentModel = require('../models/student');
+const scoreModel = require('../models/score');
 
 exports.verify = async (req, res) => {
     try {
@@ -67,8 +67,71 @@ exports.verify = async (req, res) => {
     } catch (error) {
         console.log(error.message);
         res.status(500).json({
-            message:'Error Verifying Teacher'
+            message: 'Error Verifying Teacher'
         })
-        
+
+    }
+};
+
+
+exports.createScoreForStudent = async (req, res) => {
+    try {
+        const { teacherId, studentId } = req.params;
+        const { punctuality, attendance, assigment, classAccessment, personalDefense } = req.body;
+
+        if (!punctuality || !attendance || !assigment || !classAccessment || !personalDefense) {
+            return res.status(400).json({
+                message: 'Please input all field'
+            })
+        };
+
+        const student = await studentModel.findById(studentId);
+        const teacher = await teacherModel.findById(teacherId);
+
+        if (!student) {
+            return res.status(404).json({
+                message: 'Student not found'
+            })
+        };
+
+        if (!teacher) {
+            return res.status(404).json({
+                message: 'Teacher not found'
+            })
+        };
+
+        if (teacher.stack !== student.stack) {
+            return res.status(404).json({
+                message: 'You can only create score for assigned student'
+            })
+        };
+
+        const previousScore = await scoreModel.find({ studentId: id });
+
+        const newScore = new scoreModel({
+            week: previousScore.length + 1,
+            punctuality,
+            attendance,
+            assigment,
+            classAccessment,
+            personalDefense,
+            totalScore: punctuality + attendance + assigment + classAccessment + personalDefense,
+            averageScore: totalScore / 5,
+            studentName: student.fullName,
+            studentId: student._id
+        });
+
+        await newScore.save();
+
+        res.status(201).json({
+            message: `${newScore.studentName} score for week: ${newScore.week}`,
+            data: newScore
+        })
+
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).json({
+            message: 'Error Creating Score for Student'
+        })
     }
 }

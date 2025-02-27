@@ -709,14 +709,28 @@ exports.getStudents = async (req, res) => {
 
 exports.getStudentByStack = async (req, res) => {
   try {
-    // const { studentId }
+    const { studentId } = req.params;
+    const { stack } = req.body;
+
+    const student = await studentModel.findOne({ _id: studentId }, { stack: stack });
+
+    if (!student) {
+      return res.status(404).json({
+        message: 'Student not found'
+      })
+    };
+
+    res.status(200).json({
+      message: 'Student info below',
+      data: student
+    })
   } catch (error) {
     console.log(error.message);
     res.status(500).json({
       message: 'Error Getting student'
     })
   }
-}
+};
 
 
 exports.deleteStudent = async (req, res) => {

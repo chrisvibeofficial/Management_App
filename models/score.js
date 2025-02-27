@@ -25,6 +25,18 @@ const scoreSchema = new mongoose.Schema({
                 type: Number,
                 required: true
         },
+        totalScore: {
+                type: Number,
+                required: true
+        },
+        averageScore: {
+                type: String,
+                required: true
+        },
+        studentName: {
+                type: String,
+                required: true
+        },
         studentId: {
                 type: mongoose.SchemaTypes.ObjectId,
                 ref: "students"

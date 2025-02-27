@@ -115,18 +115,18 @@ exports.authorizeManagement = async (req, res, next) => {
 
     const token = auth.split(' ')[1];
 
-    if (!token) {
-      return res.status(400).json({
-        message: 'Management Authorization: Invalid token'
-      })
-    };
-
     const decodedToken = await jwt.verify(token, process.env.JWT_SECRET);
-    const { userId } = await studentModel.findById(decodedToken);
+    
+    const management = await managementModel.findById(decodedToken.managementId);
 
-    if (!userId) {
+    if (!management) {
       return res.status(404).json({
-        message: 'Management Authorization: Management not found'
+        message: 'Management Authorization: ManagementId not found'
+      })
+    }
+    if (!management) {
+      return res.status(404).json({
+        message: 'Management Authorization: ManagementId not found'
       })
     }
 

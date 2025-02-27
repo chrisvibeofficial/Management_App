@@ -1,9 +1,11 @@
-const{register, verify, createScoreForStudent}=require('../controllers/teacherController');
+const { verify, createScoreForStudent, updateStudent, login } = require('../controllers/teacherController');
 const { authorizeTeacher } = require('../middlewares/authorization');
 const router = require('express').Router();
 
 
-router.get('/verify-account', verify);
+router.get('/verify-account/:token', verify);
+router.post('/login', login)
 router.post('/create-score', authorizeTeacher, createScoreForStudent);
+router.put('/update-student/:studentId', authorizeTeacher, updateStudent);
 
-module.exports=router
+module.exports = router

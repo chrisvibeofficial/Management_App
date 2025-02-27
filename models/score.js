@@ -25,10 +25,10 @@ const scoreSchema = new mongoose.Schema({
                 type: Number,
                 required: true
         },
-        studentId: [{
+        studentId: {
                 type: mongoose.SchemaTypes.ObjectId,
                 ref: "students"
-        }]
+        }
 })
 const scoreModel = mongoose.model('scores', scoreSchema);
 

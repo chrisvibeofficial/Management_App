@@ -134,4 +134,39 @@ exports.createScoreForStudent = async (req, res) => {
             message: 'Error Creating Score for Student'
         })
     }
-}
+};
+
+
+exports.updateStudent = async (req, res) => {
+    try {
+        const { studentId } = req.params
+
+        const { fullName, stack } = req.body;
+
+        const student = await studentModel.findById(studentId)
+
+        if (!student) {
+            return res.status(404).json({
+                message: "student not found"
+            })
+        };
+
+        const data = {
+            fullName,
+            stack
+        }
+
+        const updatedStudent = await studentModel.findByIdAndUpdate(student, data, { new: true })
+
+        res.status(200).json({
+            message: "student updated successfully",
+            date: updatedStudent
+        })
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            message: "Internal server error",
+        });
+    }
+};

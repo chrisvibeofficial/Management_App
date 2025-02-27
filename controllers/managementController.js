@@ -68,7 +68,6 @@ exports.register = async (req, res) => {
 };
 
 
-
 exports.verify = async (req, res) => {
   try {
     const { token } = req.params;
@@ -549,6 +548,41 @@ exports.removeTeacherAsAdmin = async (req, res) => {
 };
 
 
+exports.updateTeacher = async (req, res) => {
+  try {
+      const { teacherId } = req.params
+
+      const { fullName, stack } = req.body;
+
+      const teacher = await teacherModel.findById(teacherId)
+
+      if (!teacher) {
+          return res.status(404).json({
+              message: "teacher not found"
+          })
+      };
+
+      const data = {
+          fullName,
+          stack
+      }
+
+      const updatedteacher = await teacherModel.findByIdAndUpdate(teacher, data, { new: true })
+
+      res.status(200).json({
+          message: "teacher updated successfully",
+          date: updatedteacher
+      })
+
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({
+          message: "Internal server error",
+      });
+  }
+};
+
+
 exports.deleteTeacher = async (req, res) => {
   try {
     const { managementId, teacherId } = req.params;
@@ -729,6 +763,41 @@ exports.getStudentByStack = async (req, res) => {
     res.status(500).json({
       message: 'Error Getting student'
     })
+  }
+};
+
+
+exports.updateStudent = async (req, res) => {
+  try {
+      const { studentId } = req.params
+
+      const { fullName, stack } = req.body;
+
+      const student = await studentModel.findById(studentId)
+
+      if (!student) {
+          return res.status(404).json({
+              message: "student not found"
+          })
+      };
+
+      const data = {
+          fullName,
+          stack
+      }
+
+      const updatedStudent = await studentModel.findByIdAndUpdate(student, data, { new: true })
+
+      res.status(200).json({
+          message: "student updated successfully",
+          date: updatedStudent
+      })
+
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({
+          message: "Internal server error",
+      });
   }
 };
 

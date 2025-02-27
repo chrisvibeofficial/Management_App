@@ -3,7 +3,7 @@ const { login, forgotPassword, resetPassword, getScores, getScore, changePasswor
 const router = require('express').Router();
 
 router.post('/login-student', login);
-router.get('/verify-account/:token', verify)
+router.get('/verify-student/:token', verify)
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password/:token', resetPassword);
 router.post('/change-password', changePassword);

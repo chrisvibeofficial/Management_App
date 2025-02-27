@@ -104,7 +104,7 @@ exports.verify = async (req, res) => {
           }
 
           const newToken = jwt.sign({ managementId: management._id }, process.env.JWT_SECRET, { expiresIn: '5mins' });
-          const link = `${req.protocol}://${req.get('host')}/api/v1/verify-account/${newToken}`;
+          const link = `${req.protocol}://${req.get('host')}/api/v1/verify-management/${newToken}`;
           const firstName = management.fullName.split(' ')[0];
 
           const mailDetails = {

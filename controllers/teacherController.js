@@ -102,7 +102,7 @@ exports.login = async (req, res) => {
       };
       if (teacher.isVerified === false) {
         const token = jwt.sign({ teacherId: teacher._id }, process.env.JWT_SECRET, { expiresIn: '5mins' });
-        const link = `${req.protocol}://${req.get('host')}/api/v1/verify-account/${token}`;
+        const link = `${req.protocol}://${req.get('host')}/api/v1/verify-teacher/${token}`;
         const firstName = teacher.fullName.split(' ')[0];
         
         const mailDetails={

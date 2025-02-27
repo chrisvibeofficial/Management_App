@@ -3,7 +3,7 @@ const { authorizeTeacher } = require('../middlewares/authorization');
 const router = require('express').Router();
 
 
-router.get('/verify-account/:token', verify);
+router.get('/verify-teacher/:token', verify);
 router.post('/login', login)
 router.post('/create-score', authorizeTeacher, createScoreForStudent);
 router.put('/update-student/:studentId', authorizeTeacher, updateStudent);

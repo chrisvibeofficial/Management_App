@@ -4,7 +4,7 @@ const { authorizeManagement } = require('../middlewares/authorization');
 const router = require('express').Router();
 
 router.post('/register', register);
-router.get('/verify-account/:token', verify);
+router.get('/verify-management/:token', verify);
 router.post('/login', login);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password/:token', resetPassword);

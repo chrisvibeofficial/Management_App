@@ -3,78 +3,74 @@ const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken');
 const { verify_account } = require('../helper/account-verification')
 const { emailSender } = require('../middlewares/nodemailer');
-const managementModel = require('../models/management');
 
 
-exports.login = async (req, res) =>{
-    try{
-        const {email,password} = req.body;
+exports.login = async (req, res) => {
+    try {
+        const {email,password} = req.params;
+        if (email){
+            return res.status(404).json({
+                message: 'please input email'
+            })
+        };
 
-        if(!email) {
+
+        if(!password) {
             return res.status(400).json({
-                message: 'pleas input email'
-
-            })
-        };
-        if (!password) {
-            return res.status(400).json([
                 message: 'please input password'
-            ])
-        };
-
-        const login = await loginModel.findone({email:email.tolowerCase()});
-
-        if (!login){
-            return res.status(404)({
-                message:'Account does not exist'
-
             })
         };
 
-        const incorrectPassword = await bycrypt.compare( password,login,password);
+        const teacher = await teacherModel.findOne({ email: email.TolowerCase() });
+        
+        if (!techer) {
+            return res.status(400).json({
+                message : 'Account does not exist'
+            })
+        };
 
-       if (!isinCorrectPassword) {
-            return res.status(404)({
-                message:'incorrect passwords'
+        const iscorrectpassword = await bcrypt.compare(password, teacher.password);
 
+        if(!iscorrectpassword) {
+            return res.status(400).json({
+                message: 'incorrect password'
+            })
+        };
 
-    })
-};
+        if (teacher.isVerified === false) {
+            const token = jwt.sign({teacherId: teacher.id},process.env.JWT_SECRET,{expire: '5mins'});
+            const firstName = teacher.fullName.split('')[0];
+        
+            const mailDetails ={
+                subject:'Email verification',
+                email: 'management.email',
+                html: 'verify_account(link,firstName)'
+            };
 
-if(login.isverified === false) {
-    const token = jwt.sign({loginId: login._id}, process.envJWT_SECRET,{expireIn:'5min'});
-    const link =`${req.protpcol}://${req.get('host')}/api/v1/verify-account/${token}`;
-    const firstName = login.fullName.split('')[0];
+            emailSender(mailDetails);
+            res.status(400).json({
+                message: 'Account not verified: link has been sent to email'
+            })
+            
+        };
+        const token = jwt.sign({teacherId: teacher._id},process.env.JWT_SECRET,{expireIn: '5mins'});
+        res.status(400).json({
+            message: 'Account successfully logged in',
+            data: 'teacher.fullName',
+            token
+        
+        });
 
-    const mailDetails = {
-        subject: 'Email verification',
-        email: login.email,
-        html:verify_account(link,firstName)
-    };
+        
+        
 
-    emailsender(mailDetails),
-    res.status(400).json({
-        message: 'Account not verified:link has sent to youremail'
-
-    });
-    
-}
-
-const  token = jwt.sign({loginId: login._id},process.env,JWT_SECRET,{expireIn:'5mins'});
-
-res.status(200).json({
-    message: 'Account successfulylogged In',
-    data: login.fullName,
-    token
-})
-    }catch (error) {
+    } catch (error) {
         console.log(error.message);
         res.status(500).json({
-            message: 'Error logging login'
-    
+            message:'Error Loggin Teacher In'
         })
     }
-
+}
 
 exports.verify = async (req, res) => {
     try {

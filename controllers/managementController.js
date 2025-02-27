@@ -43,7 +43,7 @@ exports.register = async (req, res) => {
     });
 
     const token = jwt.sign({ managementId: management._id }, process.env.JWT_SECRET, { expiresIn: '5mins' });
-    const link = `${req.protocol}://${req.get('host')}/api/v1/verify-account/${token}`;
+    const link = `${req.protocol}://${req.get('host')}/api/v1/verify-management/${token}`;
     const firstName = management.fullName.split(' ')[0];
 
     const mailDetails = {

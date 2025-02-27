@@ -6,6 +6,76 @@ const { emailSender } = require('../middlewares/nodemailer');
 const managementModel = require('../models/management');
 
 
+exports.login = async (req, res) =>{
+    try{
+        const {email,password} = req.body;
+
+        if(!email) {
+            return res.status(400).json({
+                message: 'pleas input email'
+
+            })
+        };
+        if (!password) {
+            return res.status(400).json([
+                message: 'please input password'
+            ])
+        };
+
+        const login = await loginModel.findone({email:email.tolowerCase()});
+
+        if (!login){
+            return res.status(404)({
+                message:'Account does not exist'
+
+            })
+        };
+
+        const incorrectPassword = await bycrypt.compare( password,login,password);
+
+       if (!isinCorrectPassword) {
+            return res.status(404)({
+                message:'incorrect passwords'
+
+
+    })
+};
+
+if(login.isverified === false) {
+    const token = jwt.sign({loginId: login._id}, process.envJWT_SECRET,{expireIn:'5min'});
+    const link =`${req.protpcol}://${req.get('host')}/api/v1/verify-account/${token}`;
+    const firstName = login.fullName.split('')[0];
+
+    const mailDetails = {
+        subject: 'Email verification',
+        email: login.email,
+        html:verify_account(link,firstName)
+    };
+
+    emailsender(mailDetails),
+    res.status(400).json({
+        message: 'Account not verified:link has sent to youremail'
+
+    });
+    
+}
+
+const  token = jwt.sign({loginId: login._id},process.env,JWT_SECRET,{expireIn:'5mins'});
+
+res.status(200).json({
+    message: 'Account successfulylogged In',
+    data: login.fullName,
+    token
+})
+    }catch (error) {
+        console.log(error.message);
+        res.status(500).json({
+            message: 'Error logging login'
+    
+        })
+    }
+
+
 exports.verify = async (req, res) => {
     try {
         const { token } = req.params;
@@ -71,4 +141,4 @@ exports.verify = async (req, res) => {
         })
         
     }
-}
+};

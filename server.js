@@ -13,3 +13,4 @@ app.use('/api/v1', managementRouter);
 app.listen(PORT, () => {
   console.log('server is up and running on', PORT)
 })
+

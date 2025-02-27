@@ -135,3 +135,61 @@ exports.createScoreForStudent = async (req, res) => {
         })
     }
 }
+
+
+exports.login = async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      if (!email) {
+        return res.status(400).json({
+          message: 'Please Input email'
+        })
+  
+      };
+      if (!password) {
+        return res.status(400).json({
+          message: 'please input password'
+        })
+      }
+      const teacher = await teacherModel.findOne({ email: email.toLowercCase })
+      if (!teacher) {
+        res.status(404).json({
+          message: 'Account dose not exist'
+        })
+      };
+      const isCorrectPaworrd = await bcrypt.compare(password, teacher.password);
+      if (!isCorrectPaworrd) {
+        return res.status(400).json({
+          message: 'incorrect password'
+        })
+      };
+      if (teacher.isVerified === false) {
+        const token = jwt.sign({ teacherId: teacher._id }, process.env.JWT_SECRET, { expiresIn: '5mins' });
+        const link = `${req.protocol}://${req.get('host')}/api/v1/verify-account/${token}`;
+        const firstName = teacher.fullName.split(' ')[0];
+        
+        const mailDetails={
+          subject:'Email Verification',
+          email:teacher.email,
+          html:verify_account(link, firstName)
+        };
+  
+        emailSender(mailDetails);
+        res.status(400).json({
+          message:'Account not verified: link has been send to your email '
+        })
+    
+    };
+      const token = jwt.sign({teacherId:teacher._id},process.env.JWT_SECRET,{expiresIn:'1day'});
+      res.status(200).json({
+        message:'Account Successfully Logger In',
+        data:teacher.fullName,
+        token
+      })
+    } catch (error) {
+      console.log(error.message);
+      res.status(500).json({
+        message:'Error Logging Teacher In' 
+      })      
+    }
+  }

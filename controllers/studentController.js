@@ -38,7 +38,7 @@ exports.login = async (req, res) => {
     };
 
     if (student.isVerified === false) {
-      const token = jwt.sign({ studentId: newstudent._id }, process.env.JWT_SECRET, { expiresIn: '5mins' });
+      const token = jwt.sign({ studentId: student._id }, process.env.JWT_SECRET, { expiresIn: '5mins' });
       const link = `${req.protocol}://${req.get('host')}/api/v1/verify-account/${token}`;
       const firstName = student.fullName.split(' ')[0];
 
@@ -54,7 +54,7 @@ exports.login = async (req, res) => {
       })
     };
 
-    const token = jwt.sign({ student: student._id }, process.env.JWT_SECRET, { expiresIn: '1day' });
+    const token = jwt.sign({ studentId: student._id }, process.env.JWT_SECRET, { expiresIn: '1day' });
 
     res.status(200).json({
       message: 'Login Successfull',

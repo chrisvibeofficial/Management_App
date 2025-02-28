@@ -40,7 +40,7 @@ exports.login = async (req, res) => {
 
     if (student.isVerified === false) {
       const token = jwt.sign({ studentId: student._id }, process.env.JWT_SECRET, { expiresIn: '5mins' });
-      const link = `${req.protocol}://${req.get('host')}/api/v1/verify-account/${token}`;
+      const link = `${req.protocol}://${req.get('host')}/api/v1/verify-student/${token}`;
       const firstName = student.fullName.split(' ')[0];
 
       const mailDetails = {
@@ -329,7 +329,7 @@ exports.getScores = async (req, res) => {
 };
 
 
-exports.getScore = async (req, res) => {
+exports.getScoreByWeek = async (req, res) => {
   try {
     const { id } = req.params;
     const { week } = req.body;
@@ -342,7 +342,7 @@ exports.getScore = async (req, res) => {
       })
     };
 
-    const studentScore = await scoreModel.findOne({ studentId: id }, { week: week });
+    const studentScore = await scoreModel.findOne({ studentId: id } && { week: week });
 
     if (!studentScore) {
       return res.status(404).json({

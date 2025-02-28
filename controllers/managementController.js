@@ -43,7 +43,7 @@ exports.register = async (req, res) => {
     });
 
     const token = jwt.sign({ managementId: management._id }, process.env.JWT_SECRET, { expiresIn: '5mins' });
-    const link = `${req.protocol}://${req.get('host')}/api/v1/verify-account/${token}`;
+    const link = `${req.protocol}://${req.get('host')}/api/v1/verify-management/${token}`;
     const firstName = management.fullName.split(' ')[0];
 
     const mailDetails = {
@@ -66,7 +66,6 @@ exports.register = async (req, res) => {
     })
   }
 };
-
 
 
 exports.verify = async (req, res) => {
@@ -105,7 +104,7 @@ exports.verify = async (req, res) => {
           }
 
           const newToken = jwt.sign({ managementId: management._id }, process.env.JWT_SECRET, { expiresIn: '5mins' });
-          const link = `${req.protocol}://${req.get('host')}/api/v1/verify-account/${newToken}`;
+          const link = `${req.protocol}://${req.get('host')}/api/v1/verify-management/${newToken}`;
           const firstName = management.fullName.split(' ')[0];
 
           const mailDetails = {
@@ -186,7 +185,7 @@ exports.login = async (req, res) => {
 
     if (management.isVerified === false) {
       const token = jwt.sign({ managementId: management._id }, process.env.JWT_SECRET, { expiresIn: '5mins' });
-      const link = `${req.protocol}://${req.get('host')}/api/v1/verify-account/${token}`;
+      const link = `${req.protocol}://${req.get('host')}/api/v1/verify-management/${token}`;
       const firstName = management.fullName.split(' ')[0];
 
       const mailDetails = {
@@ -308,7 +307,7 @@ exports.resetPassword = async (req, res) => {
 
 exports.changePassword = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { managementId } = req.params;
     const { password, newPassword, confirmPassword } = req.body;
 
     if (!password || !newPassword || !confirmPassword) {
@@ -317,7 +316,7 @@ exports.changePassword = async (req, res) => {
       })
     };
 
-    const management = await managementModel.findById(id);
+    const management = await managementModel.findById(managementId);
 
     if (!management) {
       return res.status(404).json({
@@ -393,7 +392,7 @@ exports.registerTeacher = async (req, res) => {
     });
 
     const token = jwt.sign({ teacherId: newTeacher._id }, process.env.JWT_SECRET, { expiresIn: '5mins' });
-    const link = `${req.protocol}://${req.get('host')}/api/v1/verify-account/${token}`;
+    const link = `${req.protocol}://${req.get('host')}/api/v1/verify-teacher/${token}`;
     const firstName = newTeacher.fullName.split(' ')[0];
 
     const mailDetails = {
@@ -440,7 +439,7 @@ exports.getTeachers = async (req, res) => {
 exports.getTeacherAndAssignedStudents = async (req, res) => {
   try {
     const { teacherStack } = req.params;
-    const teacher = await teacherModel.findOne({ stack: teacherStack });
+    const teacher = await teacherModel.findOne({ stack: teacherStack }).populate('studentId', ['fullName', 'email', 'gender', 'stack']);
 
     if (!teacher) {
       return res.status(404).json({
@@ -448,16 +447,15 @@ exports.getTeacherAndAssignedStudents = async (req, res) => {
       })
     };
 
-    const result = teacher.populate('fullName', 'email', 'gender', 'stack')
     res.status(200).json({
       message: 'Teacher and assigned students listed below',
-      data: result,
-      totalStudents: teacher.studentId.length
+      totalStudents: teacher.studentId.length,
+      data: teacher
     })
   } catch (error) {
     console.log(error.message);
     res.status(500).json({
-      message: 'Error Getting All Teachers'
+      message: 'Error Getting Teacher with Assigned Student'
     })
   }
 };
@@ -482,7 +480,7 @@ exports.makeTeacherAdmin = async (req, res) => {
 
     if (teacher.isVerified === false) {
       const token = jwt.sign({ teacherId: teacher._id }, process.env.JWT_SECRET, { expiresIn: '5mins' });
-      const link = `${req.protocol}://${req.get('host')}/api/v1/verify-account/${token}`;
+      const link = `${req.protocol}://${req.get('host')}/api/v1/verify-teacher/${token}`;
       const firstName = teacher.fullName.split(' ')[0];
 
       const mailDetails = {
@@ -545,6 +543,41 @@ exports.removeTeacherAsAdmin = async (req, res) => {
     res.status(500).json({
       message: 'Error Dismising Teacher As Admin'
     })
+  }
+};
+
+
+exports.updateTeacher = async (req, res) => {
+  try {
+    const { teacherId } = req.params
+
+    const { fullName, stack } = req.body;
+
+    const teacher = await teacherModel.findById(teacherId)
+
+    if (!teacher) {
+      return res.status(404).json({
+        message: "teacher not found"
+      })
+    };
+
+    const data = {
+      fullName,
+      stack
+    }
+
+    const updatedteacher = await teacherModel.findByIdAndUpdate(teacher, data, { new: true })
+
+    res.status(200).json({
+      message: "teacher updated successfully",
+      date: updatedteacher
+    })
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Internal server error",
+    });
   }
 };
 
@@ -617,7 +650,7 @@ exports.registerStudent = async (req, res) => {
     });
 
     const token = jwt.sign({ studentId: newStudent._id }, process.env.JWT_SECRET, { expiresIn: '5mins' });
-    const link = `${req.protocol}://${req.get('host')}/api/v1/verify-account/${token}`;
+    const link = `${req.protocol}://${req.get('host')}/api/v1/verify-student/${token}`;
     const firstName = newStudent.fullName.split(' ')[0];
 
     const mailDetails = {
@@ -712,7 +745,7 @@ exports.getStudentByStack = async (req, res) => {
     const { studentId } = req.params;
     const { stack } = req.body;
 
-    const student = await studentModel.findOne({ _id: studentId }, { stack: stack });
+    const student = await studentModel.findOne({ _id: studentId } && { stack: stack });
 
     if (!student) {
       return res.status(404).json({
@@ -729,6 +762,54 @@ exports.getStudentByStack = async (req, res) => {
     res.status(500).json({
       message: 'Error Getting student'
     })
+  }
+};
+
+
+exports.updateStudent = async (req, res) => {
+  try {
+    const { studentId } = req.params
+    const { fullName, stack } = req.body;
+
+    const student = await studentModel.findById(studentId);
+    const teacher = await teacherModel.findOne({ stack: student.stack });
+
+    if (!student) {
+      return res.status(404).json({
+        message: "Student not found"
+      })
+    };
+
+    if (!teacher) {
+      return res.status(404).json({
+        message: "Teacher not found"
+      })
+    };
+
+    const data = {
+      fullName,
+      stack
+    };
+
+    const updatedStudent = await studentModel.findByIdAndUpdate(student._id, data, { new: true });
+
+    if (updatedStudent) {
+      teacher.studentId.pop(updatedStudent._id);
+      await teacher.save();
+      const newTeacher = await teacherModel.findOne({ stack: updatedStudent.stack });
+      newTeacher.studentId.push(updatedStudent._id);
+      await newTeacher.save();
+
+      res.status(200).json({
+        message: "student updated successfully",
+        date: updatedStudent
+      })
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Internal server error",
+    });
   }
 };
 

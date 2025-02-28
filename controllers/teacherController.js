@@ -31,7 +31,7 @@ exports.verify = async (req, res) => {
                         })
                     }
                     const newToken = jwt.sign({ teacherId: teacher._id }, process.env.JWT_SECRET, { expiresIn: '5mins' });
-                    const link = `${req.protocol}://${req.get('host')}/api/v1/verify-account/${newToken}`;
+                    const link = `${req.protocol}://${req.get('host')}/api/v1/verify-teacher/${newToken}`;
                     const firstName = teacher.fullName.split(' ')[0];
 
                     const mailDetails = {
@@ -74,12 +74,213 @@ exports.verify = async (req, res) => {
 };
 
 
+exports.login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        if (!email) {
+            return res.status(400).json({
+                message: 'Please Input email'
+            })
+        };
+
+        if (!password) {
+            return res.status(400).json({
+                message: 'please input password'
+            })
+        };
+
+        const teacher = await teacherModel.findOne({ email: email.toLowerCase() });
+
+        if (!teacher) {
+            return res.status(404).json({
+                message: 'Account dose not exist'
+            })
+        };
+
+        const isCorrectPassword = await bcrypt.compare(password, teacher.password);
+
+        if (!isCorrectPassword) {
+            return res.status(400).json({
+                message: 'incorrect password'
+            })
+        };
+        if (teacher.isVerified === false) {
+            const token = jwt.sign({ teacherId: teacher._id }, process.env.JWT_SECRET, { expiresIn: '5mins' });
+            const link = `${req.protocol}://${req.get('host')}/api/v1/verify-teacher/${token}`;
+            const firstName = teacher.fullName.split(' ')[0];
+
+            const mailDetails = {
+                subject: 'Email Verification',
+                email: teacher.email,
+                html: verify_account(link, firstName)
+            };
+
+            emailSender(mailDetails);
+            res.status(400).json({
+                message: 'Account not verified: link has been send to your email '
+            })
+
+        };
+
+        const token = jwt.sign({ teacherId: teacher._id }, process.env.JWT_SECRET, { expiresIn: '1day' });
+        res.status(200).json({
+            message: 'Account Successfully Logger In',
+            data: teacher.fullName,
+            token
+        })
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).json({
+            message: 'Error Logging Teacher In'
+        })
+    }
+};
+
+
+exports.forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        const teacher = await teacherModel.findOne({ email: email.toLowercCase() });
+
+        if (!teacher) {
+            return res.status(404).json({
+                message: 'Teacher not found'
+            })
+        };
+
+        const token = jwt.sign({ teacherId: teacher._id }, process.env.JWT_SECRET, { expiresIn: '1min' });
+        const link = `${req.protocol}://${req.get('host')}/api/v1/reset-password/${token}`; //consumed link from frontend
+        const firstName = teacher.fullName.split(' ')[0];
+
+        const mailDetails = {
+            subject: 'RESET PASSWORD',
+            email: teacher.email,
+            html: reset_password(link, firstName)
+        };
+
+        emailSender(mailDetails);
+        res.status(200).json({
+            message: 'Link has been sent to email'
+        })
+    } catch (error) {
+        console.log(error.message);
+        if (error instanceof jwt.JsonWebTokenError) {
+            return res.status(400).json({
+                message: 'Session expired, Please login to continue'
+            })
+        }
+        res.status(500).json({
+            message: 'Error: Cannot forget pasword'
+        })
+    }
+};
+
+
+exports.resetPassword = async (req, res) => {
+    try {
+        const { token } = req.params;
+        const { password, confirmPassword } = req.body;
+
+        if (!token) {
+            return res.status(404).json({
+                message: 'token not found'
+            })
+        };
+
+        const { teacherId } = jwt.decode(token);
+        const teacher = await teacherModel.findById(teacherId);
+
+        if (!teacher) {
+            return res.status(404).json({
+                message: 'Teacher not found'
+            })
+        };
+
+        if (password !== confirmPassword) {
+            return res.status(400).json({
+                message: 'Password does not match'
+            })
+        };
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        teacher.password = hashedPassword;
+        await teacher.save();
+
+        res.status(200).json({
+            message: 'Password reset successfully'
+        });
+    } catch (error) {
+        console.log(error.message);
+        if (error instanceof jwt.JsonWebTokenError) {
+            return res.status(400).json({
+                message: 'Session expired, Please login to continue'
+            })
+        }
+        res.status(500).json({
+            message: 'Error: Cannot forget password'
+        })
+    }
+};
+
+
+exports.changePassword = async (req, res) => {
+    try {
+        const { teacherId } = req.params;
+        const { password, newPassword, confirmPassword } = req.body;
+
+        if (!password || !newPassword || !confirmPassword) {
+            return res.status(400).json({
+                message: 'Input all feild'
+            })
+        };
+
+        const teacher = await teacherModel.findById(teacherId);
+
+        if (!teacher) {
+            return res.status(404).json({
+                message: 'Teacher not found'
+            })
+        };
+
+        const isCorrectPassword = await bcrypt.compare(password, teacher.password);
+
+        if (!isCorrectPassword) {
+            return res.status(400).json({
+                message: 'incorrect password'
+            })
+        };
+
+        if (newPassword !== confirmPassword) {
+            return res.status(400).json({
+                message: 'Password does not match'
+            })
+        };
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        teacher.password = hashedPassword;
+        await teacher.save();
+
+        res.status(200).json({
+            message: 'Password changed successfully'
+        })
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).json({
+            message: 'Error Changing Password'
+        })
+    }
+}
+
+
 exports.createScoreForStudent = async (req, res) => {
     try {
         const { teacherId, studentId } = req.params;
-        const { punctuality, attendance, assigment, classAccessment, personalDefense } = req.body;
+        const { punctuality, attendance, assignment, classAccessment, personalDefense } = req.body;
 
-        if (!punctuality || !attendance || !assigment || !classAccessment || !personalDefense) {
+        if (!punctuality || !attendance || !assignment || !classAccessment || !personalDefense) {
             return res.status(400).json({
                 message: 'Please input all field'
             })
@@ -106,25 +307,28 @@ exports.createScoreForStudent = async (req, res) => {
             })
         };
 
-        const previousScore = await scoreModel.find({ studentId: id });
+        const previousScore = await scoreModel.find({ studentId: studentId });
+        const totalScore = punctuality + attendance + assignment + classAccessment + personalDefense;
 
         const newScore = new scoreModel({
             week: previousScore.length + 1,
             punctuality,
             attendance,
-            assigment,
+            assignment,
             classAccessment,
             personalDefense,
-            totalScore: punctuality + attendance + assigment + classAccessment + personalDefense,
-            averageScore: totalScore / 5,
+            totalScore: totalScore,
+            averageScore: (totalScore / 5) + '%',
             studentName: student.fullName,
             studentId: student._id
         });
 
         await newScore.save();
+        student.scoreId.push(newScore._id);
+        await student.save();
 
         res.status(201).json({
-            message: `${newScore.studentName} score for week: ${newScore.week}`,
+            message: 'Student Score',
             data: newScore
         })
 
@@ -135,8 +339,61 @@ exports.createScoreForStudent = async (req, res) => {
         })
     }
 }
+
+
+exports.login = async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      if (!email) {
+        return res.status(400).json({
+          message: 'Please Input email'
+        })
+  
+      };
+      if (!password) {
+        return res.status(400).json({
+          message: 'please input password'
+        })
+      }
+      const teacher = await teacherModel.findOne({ email: email.toLowercCase })
+      if (!teacher) {
+        res.status(404).json({
+          message: 'Account dose not exist'
+        })
+      };
+      const isCorrectPaworrd = await bcrypt.compare(password, teacher.password);
+      if (!isCorrectPaworrd) {
+        return res.status(400).json({
+          message: 'incorrect password'
+        })
+      };
+      if (teacher.isVerified === false) {
+        const token = jwt.sign({ teacherId: teacher._id }, process.env.JWT_SECRET, { expiresIn: '5mins' });
+        const link = `${req.protocol}://${req.get('host')}/api/v1/verify-account/${token}`;
+        const firstName = teacher.fullName.split(' ')[0];
+        
+        const mailDetails={
+          subject:'Email Verification',
+          email:teacher.email,
+          html:verify_account(link, firstName)
+        };
+  
+        emailSender(mailDetails);
+        res.status(400).json({
+          message:'Account not verified: link has been send to your email '
+        })
     
-
-
-
-
+    };
+      const token = jwt.sign({teacherId:teacher._id},process.env.JWT_SECRET,{expiresIn:'1day'});
+      res.status(200).json({
+        message:'Account Successfully Logger In',
+        data:teacher.fullName,
+        token
+      })
+    } catch (error) {
+      console.log(error.message);
+      res.status(500).json({
+        message:'Error Logging Teacher In' 
+      })      
+    }
+  }

@@ -13,7 +13,7 @@ const scoreSchema = new mongoose.Schema({
                 type: Number,
                 required: true
         },
-        assigment: {
+        assignment: {
                 type: Number,
                 required: true
         },

@@ -40,7 +40,7 @@ exports.login = async (req, res) => {
 
     if (student.isVerified === false) {
       const token = jwt.sign({ studentId: student._id }, process.env.JWT_SECRET, { expiresIn: '5mins' });
-      const link = `${req.protocol}://${req.get('host')}/api/v1/verify-account/${token}`;
+      const link = `${req.protocol}://${req.get('host')}/api/v1/verify-student/${token}`;
       const firstName = student.fullName.split(' ')[0];
 
       const mailDetails = {
@@ -71,6 +71,89 @@ exports.login = async (req, res) => {
     }
     res.status(500).json({
       message: 'Error Loggin Student In'
+    })
+  }
+};
+
+
+exports.verify = async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      return res.status(404).json({
+        message: 'Token not found'
+      })
+    };
+
+    jwt.verify(token, process.env.JWT_SECRET, async (error, payload) => {
+      if (error) {
+        if (error instanceof jwt.JsonWebTokenError) {
+          const { studentId } = jwt.decode(token);
+
+          if (!studentId) {
+            return res.status(404).json({
+              message: 'StudentId not found'
+            })
+          };
+
+          const student = await studentModel.findById(studentId);
+
+          if (!student) {
+            return res.status(404).json({
+              message: 'Student not found'
+            })
+          };
+
+          if (student.isVerified === true) {
+            return res.status(400).json({
+              message: 'Student: Account has already been verified'
+            })
+          }
+
+          const newToken = jwt.sign({ studentId: student._id }, process.env.JWT_SECRET, { expiresIn: '5mins' });
+          const link = `${req.protocol}://${req.get('host')}/api/v1/verify-student/${newToken}`;
+          const firstName = student.fullName.split(' ')[0];
+
+          const mailDetails = {
+            subject: 'Resend: Email Verification',
+            email: student.email,
+            html: verify_account(link, firstName)
+          };
+
+          emailSender(mailDetails);
+
+          res.status(200).json({
+            message: 'Session expired: Link has been sent to your Email address'
+          })
+        }
+      } else {
+        const student = await studentModel.findById(payload.studentId);
+
+        if (!student) {
+          return res.status(404).json({
+            message: 'Student not found'
+          })
+        };
+
+        if (student.isVerified === true) {
+          return res.status(400).json({
+            message: 'Student: Account has already been verified'
+          })
+        }
+
+        student.isVerified = true;
+        await student.save();
+
+        res.status(200).json({
+          message: 'Student: Account verified successfully'
+        })
+      }
+    })
+  } catch (error) {
+    console.log(error.message);
+    res.status(500).json({
+      message: 'Error Verifying Student'
     })
   }
 };
@@ -246,7 +329,7 @@ exports.getScores = async (req, res) => {
 };
 
 
-exports.getScore = async (req, res) => {
+exports.getScoreByWeek = async (req, res) => {
   try {
     const { id } = req.params;
     const { week } = req.body;
@@ -259,7 +342,7 @@ exports.getScore = async (req, res) => {
       })
     };
 
-    const studentScore = await scoreModel.findOne({ studentId: id }, { week: week });
+    const studentScore = await scoreModel.findOne({ studentId: id } && { week: week });
 
     if (!studentScore) {
       return res.status(404).json({
